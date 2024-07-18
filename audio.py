@@ -444,5 +444,6 @@ class AudioEncoder(nn.Module):
             if bos is not None:
                 audio = torch.concat([bos, audio, eos])
             assert len(audio) == audio_span
+            # 预处理的时候可能发生了padding，这里把它去掉。所以返回的就是实际时间长度对应的audio token 的 embeds
             output_audios.append(audio)
         return output_audios
