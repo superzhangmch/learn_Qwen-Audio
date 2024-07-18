@@ -889,6 +889,14 @@ class QWenModel(QWenPreTrainedModel):
                 # audio_pos 的元素(i, a, b)，i表示batch内哪个数据里有audio, {a,b}表示该data内audio的开始与结束位置
                 hidden_states[i][a : b+1] = audios[idx]
                 # 这里是对hidden_states对应audio tokens的位置，换成真正的whisperv2 encode的audio tokens embedding
+                # 这里有个问题是：为啥input_ids中的<audio>...</audio>内部的ids个数正好等于这里的audios[idx]? 这是在tokenize的时候，根据音频文件长度估计出应该留多大的空，从而提前准备好的
+                #  使用示例中的下面这三句：
+                #      query = f"<audio>{audio_url}</audio>{sp_prompt}"
+                #      audio_info = tokenizer.process_audio(query)
+                #      inputs = tokenizer(query, return_tensors='pt', audio_info=audio_info)
+                #   在第三句中，会根据audio_info中包含的audio tokens数，作 <audio>...</audio>内部的id list 的填充
+                #   对应代码在 tokenization_qwen.py： def _encode_audiourl(audio_tokens, audio_info, audio_idx) 这里
+
         output_shape = input_shape + (hidden_states.size(-1),)
 
         if self.gradient_checkpointing and self.training:
