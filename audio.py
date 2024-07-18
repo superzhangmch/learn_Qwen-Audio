@@ -436,6 +436,7 @@ class AudioEncoder(nn.Module):
         # input_audios已经'pad_or_trim'到固定长度了。但是，input_audio_lengths并不是该固定长度值，在发生了padding时是实际时间长度值
         x, bos, eos = self(input_audios, padding_mask,input_audio_lengths) # 即self.forward(..)
         # 经过处理，input_audios，也就是x的shape变成了[batch_size, time_len, output_token_dim]
+        # bos, eos是start/end两个特殊token的embedding
         output_audios = []
         for i in range(len(audio_span_tokens)): # 遍历一个batch中的每个
             audio_span = audio_span_tokens[i]
