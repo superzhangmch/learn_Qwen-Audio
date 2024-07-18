@@ -561,7 +561,7 @@ class QWenTokenizer(PreTrainedTokenizer):
                 audio = pad_or_trim(audio.flatten())
                 mel = log_mel_spectrogram(audio)
                 audio_len_after_cnn = get_T_after_cnn(mel_len) # audio.encode(..)中做了conv_1d后，长度减半
-                audio_token_num = (audio_len_after_cnn - 2) // 2 + 1 # audio.encode(..)中做了avg_pool_1d后长度还会减一半
+                audio_token_num = (audio_len_after_cnn - 2) // 2 + 1 # audio.encode(..)中做了avg_pool_1d后长度还会减一半. 故audio token数为mel谱的时间长度的1/4
                 audio_len = [audio_len_after_cnn, audio_token_num]
                 audios.append(mel)
                 audio_lens.append(audio_len)
