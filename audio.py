@@ -433,6 +433,7 @@ class AudioEncoder(nn.Module):
             padding_mask[index, :input_audio_lengths[index][0].item()] = 0
 
         # input_audios: mel谱表示的audio, shape == (batch_size, n_mels, time_len)
+        # input_audios已经'pad_or_trim'到固定长度了。但是，input_audio_lengths并不是该固定长度值，在发生了padding时是实际时间长度值
         x, bos, eos = self(input_audios, padding_mask,input_audio_lengths) # 即self.forward(..)
         # 经过处理，input_audios，也就是x的shape变成了[batch_size, time_len, output_token_dim]
         output_audios = []
