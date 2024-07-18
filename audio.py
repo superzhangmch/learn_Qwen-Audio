@@ -337,7 +337,7 @@ class AudioEncoder(nn.Module):
     def __init__(
             self,
             n_mels: int,
-            n_ctx: int,
+            n_ctx: int, # 时间长度
             n_state: int,
             n_head: int,
             n_layer: int,
@@ -379,12 +379,13 @@ class AudioEncoder(nn.Module):
             input_mel_len = audio_lengths[:,0] * 2
             max_mel_len_in_batch = input_mel_len.max()
             x = x[:, :, :max_mel_len_in_batch]
+
+        # 对原始mel_spectrogram audio input，先做两次时间维度的1d_CNN （也就是把时间维，当2d的HW看待。两次CNN，stride分别为1与2，故最终时间长度减半。同时对于channel维度，这里是n_mels=80扩到了1280)
         x = F.gelu(self.conv1(x))
         x = F.gelu(self.conv2(x))
         x = x.permute(0, 2, 1)  # B, L, D
         bsz = x.size(0)
         src_len = x.size(1)
-
 
         self.input_positional_embedding = self.positional_embedding[:src_len]
         assert x.shape[1:] == self.input_positional_embedding.shape, f"incorrect audio shape: {x.shape[1:], self.input_positional_embedding.shape}"
@@ -405,17 +406,16 @@ class AudioEncoder(nn.Module):
             padding_mask = new_padding_mask.masked_fill(key_padding_mask, float("-inf"))
 
         for block in self.blocks:
-            x = block(x, mask=padding_mask)
-
+            x = block(x, mask=padding_mask) # transformer操作
 
         if self.avg_pooler:
-            x = x.permute(0, 2, 1)
-            x = self.avg_pooler(x)
-            x = x.permute(0, 2, 1)
+            x = x.permute(0, 2, 1) # nn.AvgPool1d要求input是[B, C, L]shape的
+            x = self.avg_pooler(x) # self.avg_pooler == nn.AvgPool1d(kernel_size=2, stride=2)， 所以经此操作后，时间维度有减半
+            x = x.permute(0, 2, 1) # [B, time_len, Channel]
 
 
-        x = self.ln_post(x)
-        x = self.proj(x)
+        x = self.ln_post(x) # layerNorm
+        x = self.proj(x) # 线性层， [B, time_len, Channel] => [B, time_len, Channel_new], 注意这里time_len最终变成了原始的四分之一
 
         if self.audio_bos_eos_token is not None:
             bos = self.audio_bos_eos_token.weight[0][None, :]
@@ -431,7 +431,10 @@ class AudioEncoder(nn.Module):
                                                                                device=self.conv1.weight.device)
         for index in range(len(input_audios)):
             padding_mask[index, :input_audio_lengths[index][0].item()] = 0
-        x, bos, eos = self(input_audios, padding_mask,input_audio_lengths)
+
+        # input_audios: mel谱表示的audio, shape == (batch_size, n_mels, time_len)
+        x, bos, eos = self(input_audios, padding_mask,input_audio_lengths) # 即self.forward(..)
+        # 经过处理，input_audios，也就是x的shape变成了[batch_size, time_len, output_token_dim]
         output_audios = []
         for i in range(len(audio_span_tokens)):
             audio_span = audio_span_tokens[i]
