@@ -560,8 +560,8 @@ class QWenTokenizer(PreTrainedTokenizer):
                 mel_len = L // 160
                 audio = pad_or_trim(audio.flatten())
                 mel = log_mel_spectrogram(audio)
-                audio_len_after_cnn = get_T_after_cnn(mel_len)
-                audio_token_num = (audio_len_after_cnn - 2) // 2 + 1
+                audio_len_after_cnn = get_T_after_cnn(mel_len) # audio.encode(..)中做了conv_1d后，长度减半
+                audio_token_num = (audio_len_after_cnn - 2) // 2 + 1 # audio.encode(..)中做了avg_pool_1d后长度还会减一半
                 audio_len = [audio_len_after_cnn, audio_token_num]
                 audios.append(mel)
                 audio_lens.append(audio_len)
@@ -569,7 +569,7 @@ class QWenTokenizer(PreTrainedTokenizer):
             input_audio_lengths = torch.IntTensor(audio_lens)
             input_audios = torch.stack(audios, dim=0)
             return {"input_audios": input_audios,
-                    "input_audio_lengths": input_audio_lengths,
+                    "input_audio_lengths": input_audio_lengths, # 注意所以对音频会“pad_or_trim”到30s，但是这里audio_length并不就是30s。如果padding，则会是实际的时间长度
                     "audio_span_tokens": audio_span_tokens,
                     "audio_urls": audio_urls}
         else:
