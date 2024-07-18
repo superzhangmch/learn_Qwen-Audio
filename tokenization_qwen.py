@@ -328,6 +328,8 @@ class QWenTokenizer(PreTrainedTokenizer):
             tokens.append(self.decoder[t])
 
         def _encode_audiourl(audio_tokens, audio_info, audio_idx):
+            # 用户给的 prompt 中的 <audio>url</audio>，需要对里面的url改写成不定长度的占位id。占位id序列的长度应该和wisperV2 encoded后的audio tokens embeddings长度一样。
+            # 这里正是做这件事的
             assert audio_tokens[0] == self.audio_start_tag and audio_tokens[-1] == self.audio_end_tag
             audio_token_span = audio_info['audio_span_tokens'][audio_idx]
             out_audio_tokens = [self.audio_start_tag] + [self.audio_pad_tag] * (audio_token_span - 2) + [
