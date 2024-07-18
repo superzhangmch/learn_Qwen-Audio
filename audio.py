@@ -437,7 +437,7 @@ class AudioEncoder(nn.Module):
         x, bos, eos = self(input_audios, padding_mask,input_audio_lengths) # 即self.forward(..)
         # 经过处理，input_audios，也就是x的shape变成了[batch_size, time_len, output_token_dim]
         output_audios = []
-        for i in range(len(audio_span_tokens)):
+        for i in range(len(audio_span_tokens)): # 遍历一个batch中的每个
             audio_span = audio_span_tokens[i]
             audio = x[i][:audio_span-2]
             if bos is not None:
