@@ -757,16 +757,25 @@ class QWenModel(QWenPreTrainedModel):
         return_dict: Optional[bool] = None,
         audio_info: Dict = None
     ):
-        if past_key_values is None and torch.any(input_ids == self.config.audio['audio_start_id']):
-            bos_pos = torch.where(input_ids == self.config.audio['audio_start_id'])
-            eos_pos = torch.where(input_ids == self.config.audio['audio_start_id'] + 1)
+        if past_key_values is None and torch.any(input_ids == self.config.audio['audio_start_id']): # audio_start_id=155163
+            bos_pos = torch.where(input_ids == self.config.audio['audio_start_id']) # torch.where 只会把匹配到的元素的位置返回
+            eos_pos = torch.where(input_ids == self.config.audio['audio_start_id'] + 1) 
             assert (bos_pos[0] == eos_pos[0]).all()
-            audio_pos = torch.stack((bos_pos[0], bos_pos[1], eos_pos[1]), dim=1)
+            # 如上, input_ids.shape == [B, len], torch.where(..)返回的bos_pos.shape会是两个1维tensor，分别对应inputs_ids的两个维度
+            #       所以以上assert意思是说，如果Batch内，如果某条数据含有start_id, 那么也应该有end_id
+            
+            audio_pos = torch.stack((bos_pos[0], bos_pos[1], eos_pos[1]), dim=1) 
+            # 上面中第一个: 表示batch内哪些行有audio (注意 bos_pos[0] == eos_pos[0])
+            #       第二个：对有audio的data，start位置的index
+            #       第三个：对有audio的data，end  位置的index
+
             if isinstance(audio_info, Dict):
                 audios = audio_info["input_audios"]
                 audio_span_tokens = audio_info["audio_span_tokens"]
                 input_audio_lengths = audio_info["input_audio_lengths"]
+                # input: audios: audio mel_spectrogram; input_audio_lengths：音频实际时间长度(padding的不算入)
                 audios = self.audio.encode(audios,input_audio_lengths, audio_span_tokens)
+                # output: audios: 音频的audio token embedings. token数正比与原始音频长度（除非发生了超长截断）
             else:
                 audios = torch.concat([_["input_audios"] for _ in audio_info])
                 input_audio_lengths = torch.concat([_["input_audio_lengths"] for _ in audio_info])
@@ -877,7 +886,9 @@ class QWenModel(QWenPreTrainedModel):
         hidden_states = self.drop(hidden_states)
         if audios is not None:
             for idx, (i, a, b) in enumerate(audio_pos):
+                # audio_pos 的元素(i, a, b)，i表示batch内哪个数据里有audio, {a,b}表示该data内audio的开始与结束位置
                 hidden_states[i][a : b+1] = audios[idx]
+                # 这里是对hidden_states对应audio tokens的位置，换成真正的whisperv2 encode的audio tokens embedding
         output_shape = input_shape + (hidden_states.size(-1),)
 
         if self.gradient_checkpointing and self.training:
