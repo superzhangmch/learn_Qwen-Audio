@@ -1,3 +1,5 @@
+audio与txt怎样融入LLM：modeling_qwen.py | audio_encoder: audio.py | tokenizer: tokenization_qwen.py
+<hr>
 <p align="left">
         <a href="README_CN.md">中文</a> &nbsp｜ &nbsp English&nbsp&nbsp
 </p>
