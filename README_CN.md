@@ -1,3 +1,9 @@
+入口：configuration_qwen.py 
+<p>audio_encoder: audio.py
+<p>tokenizer: 对应文件.py
+        
+<hr>
+
 <p align="left">
         中文</a>&nbsp ｜ &nbsp<a href="README.md">English</a>
 </p>
